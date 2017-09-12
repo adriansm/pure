@@ -105,23 +105,24 @@ prompt_pure_preprompt_render() {
 
 	# Set color for git branch/dirty status, change color if dirty checking has
 	# been delayed.
-	local git_color=242
+	local git_color=cyan
 	[[ -n ${prompt_pure_git_last_dirty_check_timestamp+x} ]] && git_color=red
 
 	# Initialize the preprompt array.
 	local -a preprompt_parts
+	local -a preprompt_right
 
 	# Set the path.
-	preprompt_parts+=('%F{blue}%~%f')
+	preprompt_parts+=('%B%F{blue}%~%f%b')
 
 	# Add git branch and dirty status info.
 	typeset -gA prompt_pure_vcs_info
 	if [[ -n $prompt_pure_vcs_info[branch] ]]; then
-		preprompt_parts+=("%F{$git_color}"'${prompt_pure_vcs_info[branch]}${prompt_pure_git_dirty}%f')
+		preprompt_right+=("%F{$git_color}"'[git:${prompt_pure_vcs_info[branch]}]%F{red}${prompt_pure_git_dirty}%f')
 	fi
 	# Git pull/push arrows.
 	if [[ -n $prompt_pure_git_arrows ]]; then
-		preprompt_parts+=('%F{cyan}${prompt_pure_git_arrows}%f')
+		preprompt_right+=('%F{cyan}${prompt_pure_git_arrows}%f')
 	fi
 
 	# Username and machine, if applicable.
@@ -147,12 +148,21 @@ prompt_pure_preprompt_render() {
 		$prompt_newline           # Separate preprompt and prompt.
 		$cleaned_ps1
 	)
+	local -ah ps2
+	local _lineup=$'\e[1A'
+	local _linedown=$'\e[1B'
+	ps2=(
+		"%{${_lineup}%}"
+		${(j. .)preprompt_right}
+		"%{${_linedown}%}"
+	)
 
 	PROMPT="${(j..)ps1}"
+	RPROMPT="${(j..)ps2}"
 
 	# Expand the prompt for future comparision.
 	local expanded_prompt
-	expanded_prompt="${(S%%)PROMPT}"
+	expanded_prompt="${(S%%)PROMPT}${(S%%)RPROMPT}"
 
 	if [[ $1 != precmd ]] && [[ $prompt_pure_last_prompt != $expanded_prompt ]]; then
 		# Redraw the prompt.
